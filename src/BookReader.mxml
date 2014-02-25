@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml"
+				xmlns:fp="com.devaldi.controls.flexpaper.*"
+				minWidth="500" minHeight="300" applicationComplete="initApp()" layout="absolute" backgroundColor="0xffffff">
+	<mx:Script>
+		<![CDATA[
+			import com.adobe.serialization.json.JSON;
+			
+			import flash.sampler.getInvocationCount;
+			
+			import mx.controls.Alert;
+			import mx.core.FlexGlobals;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.rpc.http.HTTPService;
+			
+			public var _aid:int = 0;//文档ID  
+			
+			[Bindable]  
+			public var _Scale:Number = 1;//缩放比例  
+			
+			[Bindable]  
+			public var _SwfFile:String = "";//SWF文件路径  
+			
+			[Bindable]  
+			public var _ZoomTransition:String = "easeOut";  
+			
+			[Bindable]  
+			public var _ZoomTime:Number = 0.6;  
+			
+			[Bindable]  
+			public var _ZoomInterval:Number = 0.1;  
+			
+			[Bindable]  
+			public var _FitPageOnLoad:Boolean = false;//加载后适合高度  
+			
+			[Bindable]  
+			public var _FitWidthOnLoad:Boolean = false;//加载后适合宽度  
+			
+			[Bindable]  
+			public var _PrintEnabled:Boolean = false;//是否支持打印  
+			
+			[Bindable]  
+			public var _FullScreenAsMaxWindow:Boolean = true;//是否支付全屏  
+			
+			[Bindable]  
+			public var _ProgressiveLoading:Boolean = true;//是否延迟加载  
+			
+			[Bindable]  
+			public var _localeChain:String = "zh_CN";//语言  
+			
+			private var isFocus:Boolean = false;  
+			private var httpService:HTTPService;
+			private var _obj:String;
+			private var _objType:String;
+			private var _channel:int;
+			
+			//初始化参数  
+			private function initApp():void{  
+				var params:Object = FlexGlobals.topLevelApplication.parameters;// Application.application.parameters;  
+				//				_Scale = getNumber(params, "Scale", 1);  
+				_SwfFile = getString(params, "SwfFile", "uploads/default.swf");
+				var obj:String = getString(params,"objInfo","info");
+				//				Alert.show(obj);  
+				//				
+				//				//注册事件监听  
+				this.addEventListener(MouseEvent.MOUSE_OVER, onMouseOver);  
+				this.addEventListener(MouseEvent.MOUSE_OUT, onMouseOut);  
+				//				
+				//开放给外部（javascript）调用  
+//								ExternalInterface.addCallback("hasFocus", hasFocus);  
+//								ExternalInterface.addCallback("focus", focus);   
+//								ExternalInterface.addCallback("setViewerFocus", setViewerFocus);  
+//								ExternalInterface.addCallback("gotoPage", gotoPage);
+//				this.flexpaper.SwfFile = _SwfFile;
+				var str:String = getString(params,"channel","7");
+				this._channel = int(str);
+				this._objType = getString(params,"objType","digital");
+				this._obj = obj;
+				this.getSwfPath();
+			}  
+			
+			
+			private function onMouseOver(event:MouseEvent):void{  
+				this.isFocus = true;  
+			}  
+			
+			private function onMouseOut(event:MouseEvent):void{  
+				this.isFocus = false;  
+			}  
+			
+			public function hasFocus():Boolean{  
+				return isFocus;  
+			}  
+			
+			public function setViewerFocus(isFocus:Boolean):void{    
+				this.flexpaper.setViewerFocus();  
+			}  
+			public function gotoPage(p:Number):void{ 
+				this.flexpaper.gotoPage(p);            
+			}
+			
+			private function getString(params:Object, name:String, def:String):String{  
+				if(params[name] != null){  
+					return params[name];  
+				}  
+				return def;  
+			}  
+			
+			private function getNumber(params:Object, name:String, def:Number):Number{  
+				if(params[name] != null){  
+					return params[name];  
+				}  
+				return def;  
+			}  
+			
+			private function getBoolean(params:Object, name:String, def:Boolean):Boolean{  
+				if(params[name] != null){  
+					return params[name] == "true";  
+				}   
+				return def;  
+			}  
+			
+			private function getSwfPath():void{
+				var params:Object = new Object();
+				params.channel = this._channel;
+				params.obj = this._obj;
+				params.objType = this._objType;
+				httpService = new HTTPService();
+				httpService.url = "/getSwfPath.php";
+				httpService.method = "POST";
+				httpService.resultFormat="text";
+				httpService.addEventListener(FaultEvent.FAULT,httpFault);
+				httpService.addEventListener(ResultEvent.RESULT,httpResult);
+				httpService.useProxy=false;
+				httpService.send(params);
+				
+			}
+			
+			private function httpFault(event:FaultEvent):void{
+//				Alert.show("ssss");
+			}
+			
+			private function httpResult(event:ResultEvent):void{
+				var arr:Object;
+				var str:String = String(event.result);
+				arr = com.adobe.serialization.json.JSON.decode(str) as Object;
+//				Alert.show(arr.path);
+				//	this.flexpaper.SwfFile = arr.path;
+				_SwfFile = arr.path;
+			}
+		]]>
+	</mx:Script>
+	
+	<fp:FlexPaperViewer id="flexpaper" width="100%" height="100%" locale="zh_CN"
+						PrintDialogEnabled="false" PrintEnabled="false" Scale="1.0"
+						SearchToolsVisible="false" SwfFile="{_SwfFile}"
+						ViewModeToolsVisible="false"/>
+</mx:Application>
+
